@@ -11,20 +11,21 @@ const pool = new Pool({
 
 export const initDB = async () => {
   try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS warehouses (
-        uuid UUID PRIMARY KEY,
-        name TEXT NOT NULL,
-        address TEXT,
-        status TEXT NOT NULL CHECK (status IN ('aktiv', 'qeyri-aktiv')),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        created_by UUID NOT NULL,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_by UUID NOT NULL,
-        FOREIGN KEY (created_by) REFERENCES users(uuid),
-        FOREIGN KEY (updated_by) REFERENCES users(uuid)
-      );
-    `);
+
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS warehouses (
+    uuid UUID PRIMARY KEY,
+    name TEXT NOT NULL,
+    address TEXT,
+    status TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMP,
+    updated_by UUID,
+    is_deleted BOOLEAN DEFAULT FALSE  
+  );
+`);
+
 
     await pool.query(`
   CREATE TABLE IF NOT EXISTS products (
