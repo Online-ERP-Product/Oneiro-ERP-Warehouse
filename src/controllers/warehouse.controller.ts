@@ -162,3 +162,86 @@ export const getWarehouses = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error fetching warehouses' });
   }
 };
+
+export const deleteWarehouse = async (req: Request, res: Response) => {
+  const { uuid } = req.params;
+
+  try {
+
+    const checkResult = await pool.query(
+      'SELECT * FROM warehouses WHERE uuid = $1 AND is_deleted = false',
+      [uuid]
+    );
+
+    if (checkResult.rowCount === 0) {
+      return res.status(404).json({ message: 'Anbar tapılmadı.' });
+    }
+
+
+    await pool.query(
+      'UPDATE warehouses SET is_deleted = true, updated_at = NOW() WHERE uuid = $1',
+      [uuid]
+    );
+
+    return res.status(200).json({ message: 'Anbar silindi (soft delete).' });
+  } catch (error) {
+    console.error('Error deleting warehouse:', error);
+    return res.status(500).json({
+      message: 'Anbar silinərkən xəta baş verdi.',
+    });
+  }
+};
+
+export const changeWarehouseStatus = async (req: Request, res: Response) => {
+  const { uuid } = req.params;
+  const { status } = req.body;
+
+  // Validate input
+  if (typeof status !== 'boolean') {
+    return res.status(400).json({ message: 'Status dəyəri boolean olmalıdır (true və ya false).' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM warehouses WHERE uuid = $1 AND is_deleted = false',
+      [uuid]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Anbar tapılmadı və ya silinmişdir.' });
+    }
+
+    await pool.query(
+      'UPDATE warehouses SET status = $1, updated_at = NOW() WHERE uuid = $2',
+      [status, uuid]
+    );
+
+    return res.status(200).json({ message: `Anbar statusu ${status ? 'aktiv' : 'qeyri-aktiv'} olaraq yeniləndi.` });
+  } catch (error) {
+    console.error('Error changing warehouse status:', error);
+    return res.status(500).json({ message: 'Anbar statusu dəyişdirilərkən xəta baş verdi.' });
+  }
+};
+
+export const getWarehouseDropdown = async (req: Request, res: Response) => {
+  const { page = 1, limit = 10 } = req.query;
+
+  const offset = (Number(page) - 1) * Number(limit);
+
+  try {
+    const query = `
+      SELECT name AS name, uuid AS value
+      FROM warehouses
+      WHERE is_deleted = false AND status = true
+      ORDER BY created_at DESC
+      LIMIT $1 OFFSET $2
+    `;
+
+    const result = await pool.query(query, [Number(limit), offset]);
+
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching warehouse dropdown list:', error);
+    res.status(500).json({ message: 'Anbar siyahısı gətirilərkən xəta baş verdi.' });
+  }
+};

@@ -29,7 +29,7 @@ const swaggerOptions = {
       },
     ],
     paths: {
-      
+      '/warehouses': {...docs.warehouseDoc, ...docs.createWarehouseDoc },
     },
     servers: [
       {
